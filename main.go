@@ -89,14 +89,13 @@ func (b *Bot) run() {
 		switch ev := msg.Data.(type) {
 		case *slack.HelloEvent:
 			log.Println("Hello event")
-			// bot.rtm.SendMessage(bot.rtm.NewOutgoingMessage("A quest? A quest! A-questing I shall go!", bot.rtm.channel))
+			bot.rtm.SendMessage(bot.rtm.NewOutgoingMessage("A quest? A quest! A-questing I shall go!", bot.rtm.channel))
 
 		case *slack.ConnectedEvent:
-			// TODO: add hello message when conencted into #idl only
 			log.Println("Connected event")
 
 		case *slack.MessageEvent:
-			// fmt.Printf("Message: %v\n", ev)
+			// TODO: Add some commands in here
 			log.Println("Message event")
 
 		case *slack.RTMError:
@@ -107,9 +106,7 @@ func (b *Bot) run() {
 			return
 
 		default:
-
 			// Ignore other events..
-			// fmt.Printf("Unexpected: %v\n", msg.Data)
 		}
 	}
 }
