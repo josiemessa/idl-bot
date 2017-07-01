@@ -10,11 +10,21 @@ import (
 	"time"
 )
 
+type Bot interface {
+	Connect(string, string) error
+	Run()
+	SendMessage(string, bool)
+}
+
+var bot Bot
+
+const RATE_LIMIT = 1 * time.Second
+
 func main() {
 	// Grab command line parameters for start up and verify
-	slackKey := flag.String("key", "REQUIRED", "Slack integration key")
-	idlChannelName := flag.String("channel", "idl", "Channel name for IDL channel ('idl' by default)")
-	fixturesFile := flag.String("fixtures", "fixtures.json", "Location of fixtures JSON")
+	discordKey := flag.String("discordkey", "REQUIRED", "Discord integration key")
+	idlServer := flag.String("server", "idl", "Discord server/guild name for IDL ('IDL' by default)")
+	fixturesFile := flag.String("fixtures", "fixtures.json", "Location of fixtures JSON ('fixtures.json by default)")
 	flag.Parse()
 	flag.VisitAll(func(f *flag.Flag) {
 		if f.Value.String() == "REQUIRED" {
@@ -23,17 +33,22 @@ func main() {
 		}
 	})
 
+	log.SetFlags(log.LstdFlags)
+
 	fixtures, err := openFixturesFile(*fixturesFile)
 	if err != nil {
 		log.Println(err)
 	}
 
-	startSlacking(*slackKey, *idlChannelName)
+	bot = &DiscordBot{}
+	if err := bot.Connect(*discordKey, *idlServer); err != nil {
+		log.Fatal(err)
+	}
 
 	// Set the reminders for the fixtures
-	bot.SetReminders(fixtures)
+	SetReminders(fixtures)
 	// Start the loop to listen for incoming events
-	bot.run()
+	bot.Run()
 }
 
 func openFixturesFile(fixturesFile string) ([]*Fixture, error) {
@@ -53,40 +68,29 @@ func openFixturesFile(fixturesFile string) ([]*Fixture, error) {
 	return fixtures, nil
 
 }
-
-func (b *Bot) run() {
-	b.s.Run()
-}
-
-func (b *Bot) SetReminders(fixtures []*Fixture) {
+func SetReminders(fixtures []*Fixture) {
 	for _, f := range fixtures {
 		err := f.calculateFixtureReminder()
 		if err != nil {
 			log.Println(err)
 			continue
 		}
-		t, err := time.Parse("02/01/2006", f.Date)
-		if err != nil {
-			log.Println(err)
-			continue
-		}
-		log.Printf("Setting reminder for %s for fixture %s (%s %s)\n", f.Reminder, f.Teams, t.Weekday(), f.Date)
-		go time.AfterFunc(f.Reminder, func() {
-			b.FixtureAlert(f)
+		log.Printf("Setting reminder for %s for fixture %s %s\n", f.Reminder, f.Teams, f.Date)
+		// need to take a copy of f here as when the timer expires, f will be
+		// pointing to the last entry in the slice of fixtures
+		fixture := *f
+		go time.AfterFunc(fixture.Reminder, func() {
+			FixtureAlert(&fixture)
 		})
 	}
 }
 
-func (b *Bot) FixtureAlert(f *Fixture) {
+func FixtureAlert(f *Fixture) {
 	t, err := time.Parse("02/01/2006", f.Date)
 	if err != nil {
 		log.Println(err)
+		return
 	}
-	message := fmt.Sprintf("*FIXTURE REMINDER*: %s playing at 8pm %s %s KUNDALINI", f.Teams, t.Weekday(), f.Date)
+	message := fmt.Sprintf("*FIXTURE REMINDER*: %s playing at 8pm %s %s", f.Teams, t.Weekday(), f.Date)
 	bot.SendMessage(message, true)
-
-}
-
-func (b *Bot) SendMessage(message string, notify bool) {
-	b.s.SendMessage(message, notify)
 }
