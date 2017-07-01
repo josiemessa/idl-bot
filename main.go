@@ -8,18 +8,7 @@ import (
 	"log"
 	"os"
 	"time"
-
-	"github.com/nlopes/slack"
 )
-
-// Bot extends the RTM API so we can just call RTM functions on it
-type Bot struct {
-	rtm       *slack.RTM
-	channel   string // Channel ID for the IDL channel
-	Reminders []time.Timer
-}
-
-var bot Bot
 
 func main() {
 	// Grab command line parameters for start up and verify
@@ -39,25 +28,7 @@ func main() {
 		log.Println(err)
 	}
 
-	// Create new RTM connection
-	// set UseRTMStart to false otherwise to force the API to use
-	// rtm.connect, which doesn't pull as much info as start
-	log.Println("Logging into slack")
-	api := slack.New(*slackKey)
-	bot.rtm = api.NewRTMWithOptions(&slack.RTMOptions{UseRTMStart: false})
-	go bot.rtm.ManageConnection()
-
-	// Get the channel ID for the IDL channel so we can post messages in there
-	channels, err := api.GetChannels(false)
-	if err != nil {
-		log.Printf("%s\n", err)
-		return
-	}
-	for _, channel := range channels {
-		if channel.Name == *idlChannelName {
-			// Bot.channel
-		}
-	}
+	startSlacking(*slackKey, *idlChannelName)
 
 	// Set the reminders for the fixtures
 	bot.SetReminders(fixtures)
@@ -84,31 +55,7 @@ func openFixturesFile(fixturesFile string) ([]*Fixture, error) {
 }
 
 func (b *Bot) run() {
-
-	for msg := range bot.rtm.IncomingEvents {
-		switch ev := msg.Data.(type) {
-		case *slack.HelloEvent:
-			log.Println("Hello event")
-			bot.rtm.SendMessage(bot.rtm.NewOutgoingMessage("A quest? A quest! A-questing I shall go!", bot.rtm.channel))
-
-		case *slack.ConnectedEvent:
-			log.Println("Connected event")
-
-		case *slack.MessageEvent:
-			// TODO: Add some commands in here
-			log.Println("Message event")
-
-		case *slack.RTMError:
-			log.Printf("Error: %s\n", ev.Error())
-
-		case *slack.InvalidAuthEvent:
-			log.Printf("Invalid credentials")
-			return
-
-		default:
-			// Ignore other events..
-		}
-	}
+	b.s.Run()
 }
 
 func (b *Bot) SetReminders(fixtures []*Fixture) {
@@ -118,7 +65,12 @@ func (b *Bot) SetReminders(fixtures []*Fixture) {
 			log.Println(err)
 			continue
 		}
-		log.Printf("Setting reminder for %s for fixture %s (%s)\n", f.Reminder, f.Teams, f.Date)
+		t, err := time.Parse("02/01/2006", f.Date)
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+		log.Printf("Setting reminder for %s for fixture %s (%s %s)\n", f.Reminder, f.Teams, t.Weekday(), f.Date)
 		go time.AfterFunc(f.Reminder, func() {
 			b.FixtureAlert(f)
 		})
@@ -126,6 +78,15 @@ func (b *Bot) SetReminders(fixtures []*Fixture) {
 }
 
 func (b *Bot) FixtureAlert(f *Fixture) {
-	message := fmt.Sprintf("*FIXTURE REMINDER*: %s playing at 8pm %s", f.Teams, f.Date)
-	bot.rtm.SendMessage(bot.rtm.NewOutgoingMessage(message, bot.channel))
+	t, err := time.Parse("02/01/2006", f.Date)
+	if err != nil {
+		log.Println(err)
+	}
+	message := fmt.Sprintf("*FIXTURE REMINDER*: %s playing at 8pm %s %s KUNDALINI", f.Teams, t.Weekday(), f.Date)
+	bot.SendMessage(message, true)
+
+}
+
+func (b *Bot) SendMessage(message string, notify bool) {
+	b.s.SendMessage(message, notify)
 }

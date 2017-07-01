@@ -1,74 +1,36 @@
 package main
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 )
 
-// Generate fixtures dates for the next 6 days
-// so we can guarantee we test the weekend stuff
-func generateTestFixtures() []*Fixture {
-	now := time.Now()
-
-	fixtures := []*Fixture{}
-	teams := []string{"a v b", "b v c", "c v a"}
-	for i := 1; i < 7; i++ {
-		next := now.AddDate(0, 0, i)
-		y, m, d := next.Date()
-		f := &Fixture{
-			Date:  fmt.Sprintf("%.2d/%.2d/%.4d", d, m, y),
-			Teams: teams[i%3],
-		}
-		fixtures = append(fixtures, f)
+func TestAdjustForWeekends(t *testing.T) {
+	layout := "Monday 02/01/2006 03"
+	notAdjusted := []string{
+		"Friday 09/06/2017 10",
+		"Monday 12/06/2017 10",
+	}
+	adjusted := []string{
+		"Saturday 10/06/2017 10",
+		"Sunday 11/06/2017 10",
 	}
 
-	return fixtures
-}
-
-// return the indices that saturday and sunday
-// will fall on so that we can account for that in tests
-func weekendIndices() (sat int, sun int) {
-	switch time.Now().Weekday() {
-	case time.Monday:
-		return 4, 5
-	case time.Tuesday:
-		return 3, 4
-	case time.Wednesday:
-		return 2, 3
-	case time.Thursday:
-		return 1, 2
-	case time.Friday:
-		return 0, 1
-	case time.Saturday:
-		return 0, 6
-	case time.Sunday:
-		return 5, 6
+	for _, in := range notAdjusted {
+		p, _ := time.Parse(layout, in)
+		actual := adjustForWeekends(p)
+		// Don't expect time to have been adjusted for weekdays,
+		// so just expected is the same as the input to adjustForWeekends
+		require.EqualValues(t, p, actual, "Unepected adjusted time from adjustForWeekends")
 	}
-	return 0, 0
-}
 
-func TestCalculateFixtureReminders(t *testing.T) {
-	fixtures := generateTestFixtures()
-	sat, sun := weekendIndices()
-
-	for i, f := range fixtures {
-		err := f.calculateFixtureReminder()
-		require.Nil(t, err, "Unexpected error calculating reminder time")
-
-		// Calculate the expected length of the reminder
-		expected, _ := time.Parse("02/01/2006 03", fmt.Sprintf("%s 10", f.Date))
-		// account for weekends, work out when the friday is
-		if i == sat {
-			expected = expected.AddDate(0, 0, -1)
-		} else if i == sun {
-			expected = expected.AddDate(0, 0, -2)
-		}
-		expectedDuration := time.Until(expected)
-
-		// In case you're running this on a toaster, allow a 5 second delta
-		require.InDelta(t, expectedDuration.Seconds(), f.Reminder.Seconds(), 5, "Unexpected reminder duration for fixture on %s. Expected %s, got %s", f.Date, expectedDuration, f.Reminder)
+	expected, _ := time.Parse(layout, "Friday 09/06/2017 10")
+	for _, in := range adjusted {
+		p, _ := time.Parse(layout, in)
+		actual := adjustForWeekends(p)
+		// Expect weekends to be adjusted to Friday
+		require.EqualValues(t, expected, actual, "Incorrect adjusted time from adjustForWeekends")
 	}
 }
