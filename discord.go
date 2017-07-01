@@ -106,6 +106,17 @@ func ready(s *discordgo.Session, event *discordgo.Ready) {
 // This function will be called (due to AddHandler above) every time a new
 // message is created on any channel that the autenticated bot has access to.
 func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
+	kotlresponses := map[string]struct{}{
+		"Kundalini":                                                                          struct{}{},
+		"Stand aside or be trampled!":                                                        struct{}{},
+		"A quest? A quest! A-questing I shall go!":                                           struct{}{},
+		"No epic fail today, my friends, tis brilliantly clear that this one is in the bag.": struct{}{},
+		"From Light's Keep, Light's Keeper rides!":                                           struct{}{},
+		"Play Ezalor.":                                                                       struct{}{},
+		"Play I ride with the light.":                                                        struct{}{},
+		"Play The Light guides me on my quest.":                                              struct{}{},
+		"Somebody once told me the dark was gonna roll me":                                   struct{}{},
+	}
 
 	// Ignore all messages created by the bot itself
 	// This isn't required in this specific example but it's a good practice.
@@ -113,13 +124,51 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
-	// check if the message is to "botl"
-	if strings.HasPrefix(m.Content, "botl") {
-		s.ChannelMessageSend(m.ChannelID, "Kundalini")
-
+	// check if the message is to "@botl"
+	atbotl := fmt.Sprintf("<@%s>", s.State.User.ID)
+	if strings.Contains(m.Content, atbotl) {
+		var message string
+		switch {
+		case strings.Contains(m.Content, "which team"):
+			message = findTeams(m.Author.Username)
+		case strings.Contains(m.Content, "when"):
+			message = findFixtures(m.Author.Username)
+		default:
+			for response := range kotlresponses {
+				message = response
+				break
+			}
+		}
+		message = fmt.Sprintf("%s %s", m.Author.Mention(), message)
+		s.ChannelMessageSend(m.ChannelID, message)
 	} else {
 		log.Println(m.Content)
 	}
+}
+
+func findTeams(user string) string {
+	for _, t := range teams {
+		for _, p := range t.Players {
+			if p.DiscordName == user {
+				return t.Name
+			}
+		}
+	}
+	return "I'm sorry I don't know. I have failed in my quest."
+}
+
+func findFixtures(user string) string {
+	teamName := findTeams(user)
+	now := time.Now()
+	for _, f := range fixtures {
+		if strings.Contains(f.Teams, teamName) {
+			t, _ := time.Parse("02/01/2006", f.Date)
+			if now.Before(t) {
+				return fmt.Sprintf("you are next playing %s at 8pm %s %s", f.Teams, t.Weekday(), f.Date)
+			}
+		}
+	}
+	return "I'm sorry I don't know. I have failed in my quest."
 }
 
 // Sends a message to the #general channel in the IDL server

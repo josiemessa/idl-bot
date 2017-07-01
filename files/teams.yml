@@ -1,0 +1,24 @@
+players:
+  - name: Blake H
+    discord_user: CrunchyNut
+  - name: James K
+    discord_user: Drenax
+  - name: John K
+    discord_user: parakeats
+  - name: Kuhan L
+    discord_user: kooki
+  - name: Patrick Byrne
+    discord_user: Willd
+  - name: Josie M
+    discord_user: itsonrandom
+teams:
+  - team_name: Team A
+    players:
+      - name: Blake H
+      - name: James K
+      - name: John K
+      - name: Kuhan L
+      - name: Patrick Byrne
+  - team_name: Team D
+    players:
+      - name: Josie M

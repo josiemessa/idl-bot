@@ -1,13 +1,17 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"time"
+
+	"strings"
+
+	"gopkg.in/yaml.v2"
 )
 
 type Bot interface {
@@ -16,7 +20,11 @@ type Bot interface {
 	SendMessage(string, bool)
 }
 
-var bot Bot
+var (
+	bot      Bot
+	teams    []*Team
+	fixtures []*Fixture
+)
 
 const RATE_LIMIT = 1 * time.Second
 
@@ -24,7 +32,7 @@ func main() {
 	// Grab command line parameters for start up and verify
 	discordKey := flag.String("discordkey", "REQUIRED", "Discord integration key")
 	idlServer := flag.String("server", "idl", "Discord server/guild name for IDL ('IDL' by default)")
-	fixturesFile := flag.String("fixtures", "fixtures.json", "Location of fixtures JSON ('fixtures.json by default)")
+	dataDir := flag.String("data", "files", "Directory containing data files ('files' by default)")
 	flag.Parse()
 	flag.VisitAll(func(f *flag.Flag) {
 		if f.Value.String() == "REQUIRED" {
@@ -35,10 +43,16 @@ func main() {
 
 	log.SetFlags(log.LstdFlags)
 
-	fixtures, err := openFixturesFile(*fixturesFile)
+	var (
+		teamdata *TeamFile
+		err      error
+	)
+	fixtures, teamdata, err = openDataDir(*dataDir)
 	if err != nil {
 		log.Println(err)
 	}
+
+	teams = teamdata.PopulateTeams()
 
 	bot = &DiscordBot{}
 	if err := bot.Connect(*discordKey, *idlServer); err != nil {
@@ -51,46 +65,39 @@ func main() {
 	bot.Run()
 }
 
-func openFixturesFile(fixturesFile string) ([]*Fixture, error) {
+func openDataDir(dir string) ([]*Fixture, *TeamFile, error) {
 	fixtures := []*Fixture{}
+	tf := TeamFile{}
 
-	if _, err := os.Stat(fixturesFile); os.IsNotExist(err) {
-		return nil, fmt.Errorf("Fixtures file does not exist, skipping")
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		return nil, nil, fmt.Errorf("Data directory does not exist")
 	}
-	dat, err := ioutil.ReadFile(fixturesFile)
-	if err != nil {
-		return nil, fmt.Errorf("Skipping fixtures as error opening fixtures file '%s': %s", fixturesFile, err)
-	}
-	err = json.Unmarshal(dat, &fixtures)
-	if err != nil {
-		return nil, fmt.Errorf("Skipping fixtures as error unmarshalling fixtures file '%s': %s", fixturesFile, err)
-	}
-	return fixtures, nil
 
-}
-func SetReminders(fixtures []*Fixture) {
-	for _, f := range fixtures {
-		err := f.calculateFixtureReminder()
-		if err != nil {
-			log.Println(err)
-			continue
+	filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if strings.HasSuffix(path, "fixtures.yml") {
+			dat, err := ioutil.ReadFile(path)
+			if err != nil {
+				return fmt.Errorf("Skipping fixtures as error opening fixtures file '%s': %s", path, err)
+			}
+			err = yaml.Unmarshal(dat, &fixtures)
+			if err != nil {
+				return fmt.Errorf("Skipping fixtures as error unmarshalling fixtures file '%s': %s", path, err)
+			}
+			log.Printf("Loaded %d fixtures", len(fixtures))
+		} else if strings.HasSuffix(path, "teams.yml") {
+			dat, err := ioutil.ReadFile(path)
+			if err != nil {
+				return fmt.Errorf("Skipping teams as error opening teams file '%s': %s", path, err)
+			}
+			err = yaml.Unmarshal(dat, &tf)
+			if err != nil {
+				return fmt.Errorf("Skipping teams as error unmarshalling teams file '%s': %s", path, err)
+			}
+			log.Printf("Loaded %d teams and %d players", len(tf.Teams), len(tf.Players))
 		}
-		log.Printf("Setting reminder for %s for fixture %s %s\n", f.Reminder, f.Teams, f.Date)
-		// need to take a copy of f here as when the timer expires, f will be
-		// pointing to the last entry in the slice of fixtures
-		fixture := *f
-		go time.AfterFunc(fixture.Reminder, func() {
-			FixtureAlert(&fixture)
-		})
-	}
-}
+		return nil
+	})
 
-func FixtureAlert(f *Fixture) {
-	t, err := time.Parse("02/01/2006", f.Date)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	message := fmt.Sprintf("*FIXTURE REMINDER*: %s playing at 8pm %s %s", f.Teams, t.Weekday(), f.Date)
-	bot.SendMessage(message, true)
+	return fixtures, &tf, nil
+
 }
