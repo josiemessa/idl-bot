@@ -64,6 +64,9 @@ func (d *DiscordBot) setChannelID(guild string) error {
 			}
 		}
 	}
+	if d.channelID == "" {
+		return fmt.Errorf("Could not find general in guild %s", guild)
+	}
 	return nil
 }
 
@@ -158,11 +161,13 @@ func findTeams(user string) string {
 }
 
 func findFixtures(user string) string {
+
+	
 	teamName := findTeams(user)
 	now := time.Now()
 	for _, f := range fixtures {
 		if strings.Contains(f.Teams, teamName) {
-			t, _ := time.Parse("02/01/2006", f.Date)
+			t, _ := time.Parse("02/01/2006 3pm", fmt.Sprintf("%s 8pm", f.Date))
 			if now.Before(t) {
 				return fmt.Sprintf("you are next playing %s at 8pm %s %s", f.Teams, t.Weekday(), f.Date)
 			}

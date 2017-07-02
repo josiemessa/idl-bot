@@ -11,6 +11,8 @@ import (
 
 	"strings"
 
+	"sort"
+
 	"gopkg.in/yaml.v2"
 )
 
@@ -31,7 +33,7 @@ const RATE_LIMIT = 1 * time.Second
 func main() {
 	// Grab command line parameters for start up and verify
 	discordKey := flag.String("discordkey", "REQUIRED", "Discord integration key")
-	idlServer := flag.String("server", "idl", "Discord server/guild name for IDL ('IDL' by default)")
+	idlServer := flag.String("server", "IDL", "Discord server/guild name for IDL ('IDL' by default)")
 	dataDir := flag.String("data", "files", "Directory containing data files ('files' by default)")
 	flag.Parse()
 	flag.VisitAll(func(f *flag.Flag) {
@@ -96,6 +98,12 @@ func openDataDir(dir string) ([]*Fixture, *TeamFile, error) {
 			log.Printf("Loaded %d teams and %d players", len(tf.Teams), len(tf.Players))
 		}
 		return nil
+	})
+
+	sort.Slice(fixtures, func(i, j int) bool {
+		di, _ := time.Parse("02/01/2006", fixtures[i].Date)
+		dj, _ := time.Parse("02/01/2006", fixtures[j].Date)
+		return di.Before(dj)
 	})
 
 	return fixtures, &tf, nil

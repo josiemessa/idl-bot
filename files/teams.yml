@@ -11,6 +11,36 @@ players:
     discord_user: Willd
   - name: Josie M
     discord_user: itsonrandom
+  - name: David L
+    discord_user: podypodpod
+  - name: Gino C
+    discord_user: GAC
+  - name: Robbie R
+    discord_user: Goldrion
+  - name: Tom C
+    discord_user: 
+  - name: Will S
+    discord_user: Mopp
+  - name: Alex MK
+    discord_user: illiderp
+  - name: Alex E
+    discord_user: 
+  - name: Nelson
+    discord_user: Nelson
+  - name: Keith S
+    discord_user: kStew
+  - name: Mike T
+    discord_user: fierydrake
+  - name: Chris B
+    discord_user: Freff
+  - name: Frencesco
+    discord_user: C3sk0
+  - name: Josie M
+    discord_user: itsonrandom
+  - name: Ollie R
+    discord_user: Death_Roe
+  - name: Sam G
+    discord_user: smgreezy
 teams:
   - team_name: Team A
     players:
@@ -19,6 +49,24 @@ teams:
       - name: John K
       - name: Kuhan L
       - name: Patrick Byrne
+  - team_name: Team B
+    players:
+      - name: David L
+      - name: Gino C
+      - name: Robbie R
+      - name: Tom C
+      - name: Will S
+  - team_name: Team C
+    players:
+      - name: Alex MK
+      - name: Alex E
+      - name: Nelson
+      - name: Keith S
+      - name: Mike T
   - team_name: Team D
     players:
+      - name: Chris B
+      - name: Frencesco
       - name: Josie M
+      - name: Ollie R
+      - name: Sam G
