@@ -28,7 +28,7 @@ players:
   - name: Nelson
     discord_user: Nelson
   - name: Keith S
-    discord_user: kStew
+    discord_user: Beef
   - name: Mike T
     discord_user: fierydrake
   - name: Chris B
@@ -41,32 +41,33 @@ players:
     discord_user: Death_Roe
   - name: Sam G
     discord_user: smgreezy
+
 teams:
   - team_name: Team A
     players:
-      - name: Blake H
-      - name: James K
-      - name: John K
-      - name: Kuhan L
-      - name: Patrick Byrne
+      - discord_user: illiderp
+      - discord_user: CrunchyNut
+      - discord_user: Freff
+      - discord_user: GAC
+      - discord_user: itsonrandom
+      - discord_user: fierydrake
   - team_name: Team B
     players:
-      - name: David L
-      - name: Gino C
-      - name: Robbie R
-      - name: Tom C
-      - name: Will S
+      - discord_user: Nelson
+      - discord_user: podypodpod
+      - discord_user: parakeats
+      - discord_user: Death_Roe
+      - discord_user: smgreezy
   - team_name: Team C
     players:
-      - name: Alex MK
-      - name: Alex E
-      - name: Nelson
-      - name: Keith S
-      - name: Mike T
+      - discord_user: Drenax
+      - discord_user: hux
+      - discord_user: Beef
+      - discord_user: kooki
+      - discord_user: Goldrion
   - team_name: Team D
     players:
-      - name: Chris B
-      - name: Frencesco
-      - name: Josie M
-      - name: Ollie R
-      - name: Sam G
+      - discord_user: C3sk0
+      - discord_user: Mishook
+      - discord_user: Far2Far
+      - discord_user: Mopp

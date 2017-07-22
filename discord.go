@@ -132,10 +132,18 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if strings.Contains(m.Content, atbotl) {
 		var message string
 		switch {
-		case strings.Contains(m.Content, "which team"):
+		case strings.Contains(m.Content, "which team am I in"):
 			message = findTeams(m.Author.Username)
-		case strings.Contains(m.Content, "when"):
+		case strings.Contains(m.Content, "when is my next match"):
 			message = findFixtures(m.Author.Username)
+		case strings.Contains(m.Content, "which team is"):
+			playerID := findPlayerInMessage(m.Content)
+			user, err := s.User(playerID)
+			if err != nil {
+				message = "I'm sorry I don't know. I have failed in my quest."
+			} else {
+				message = findTeams(user.Username)
+			}
 		default:
 			for response := range kotlresponses {
 				message = response
@@ -147,6 +155,14 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	} else {
 		log.Println(m.Content)
 	}
+}
+
+func findPlayerInMessage(msg string) string {
+	parts := strings.Split(msg, "<@")
+	if len(parts) < 2 {
+		return ""
+	}
+	return strings.Split(parts[1], ">")[0]
 }
 
 func findTeams(user string) string {
@@ -162,7 +178,6 @@ func findTeams(user string) string {
 
 func findFixtures(user string) string {
 
-	
 	teamName := findTeams(user)
 	now := time.Now()
 	for _, f := range fixtures {
